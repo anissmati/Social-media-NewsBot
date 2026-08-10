@@ -77,19 +77,7 @@ async def findnews_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             parse_mode=ParseMode.HTML
         )
     
-"""
-async def create_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
 
-    await update.message.reply_text("Creating your post in progress...")
-
-    #with open(json_path, "r", encoding="utf-8") as file:
-    #    articles = json.load(file)
-#
-    index = query.data.removeprefix(CALLBACK_CREATE_PREFIX)
-    #article = articles[index]
-
-    run_pipeline_2(index + 1)"""
 
 async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query

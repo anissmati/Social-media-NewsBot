@@ -1,6 +1,9 @@
+import sys, os, json
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 import sqlite3
-from settings import DEFAULT_SETTINGS
-from models import User
+from database.settings import DEFAULT_SETTINGS
+from database.models import User
 
 base_path = "database/database.db"
 
@@ -26,7 +29,7 @@ def create_user(telegram_id):
 
     user = User(telegram_id=telegram_id,
                 text_color=DEFAULT_SETTINGS["text_color"],
-                gradient_color=DEFAULT_SETTINGS["gradient_color"],
+                gradient_color=json.dumps(DEFAULT_SETTINGS["gradient_color"]),
                 platform=DEFAULT_SETTINGS["platform"],
                 tone=DEFAULT_SETTINGS["tone"],
                 language=DEFAULT_SETTINGS["language"])
@@ -64,7 +67,7 @@ def get_user_settings(telegram_id):
 
     settings = {
                 "text_color": data[0][1],
-                "gradient_color": data[0][2],
+                "gradient_color": tuple(json.loads(data[0][2])),
                 "platform": data[0][3],
                 "tone": data[0][4],
                 "language": data[0][5],
@@ -87,6 +90,8 @@ class update_settings:
     def gradient_color(telegram_id, new_gradient: str):
             connect = sqlite3.connect(base_path)
             cursor = connect.cursor()
+
+            new_gradient = json.dumps(new_gradient)
     
             cursor.execute("UPDATE users SET gradient = ? WHERE user_id = ?", (new_gradient, telegram_id,))
             connect.commit()
@@ -121,7 +126,7 @@ def reset_settings(telegram_id):
         cursor = connect.cursor()
 
         data = (DEFAULT_SETTINGS['text_color'],
-                DEFAULT_SETTINGS['gradient_color'],
+                json.dumps(DEFAULT_SETTINGS['gradient_color']),
                 DEFAULT_SETTINGS['platform'],
                 DEFAULT_SETTINGS['tone'],
                 DEFAULT_SETTINGS['language'],
@@ -144,14 +149,9 @@ def reset_settings(telegram_id):
 
 
 if __name__ == "__main__":
-    init_database()
-    #create_user(123)
-    #create_user(1234)
-    #print(user_exists(telegram_id=123))
-    #update_settings.text_color(123, "#0986")
-    #update_settings.gradient_color(123, "#0986")
-    #update_settings.platform(123, "facebook")
-    #update_settings.tone(123, "proffessional")
-    #update_settings.language(123, "ar")
-    reset_settings(123)
-    print(get_user_settings(123))
+    con = sqlite3.connect(base_path)
+    cur = con.cursor()
+
+    cur.execute("SELECT * FROM users")
+    print(cur.fetchall())
+    con.close()
