@@ -9,7 +9,6 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-
 def main() -> None:
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 

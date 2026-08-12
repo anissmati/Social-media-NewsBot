@@ -2,6 +2,9 @@ nltk
 requests
 feedparser
 pillow
+arabic-reshaper
+python-bidi
 google
 google-genai
 python-telegram-bot==21.4
+dotenv

@@ -80,6 +80,7 @@ async def findnews_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()  # Acknowledge button click
 
@@ -90,7 +91,7 @@ async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.message.reply_text(f"⏳ Generating post for article #{target_index}...")
 
     # 1. Run your pipeline
-    run_pipeline_2(target_index)
+    run_pipeline_2(target_index, user_id)
 
     # 2. Find the newest folder matching "YYYY-MM-DD_HH-MM-SS" pattern
     base_dir = "output"  

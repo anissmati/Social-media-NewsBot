@@ -155,3 +155,6 @@ if __name__ == "__main__":
     cur.execute("SELECT * FROM users")
     print(cur.fetchall())
     con.close()
+
+    print(get_user_settings(6153941310))
+    

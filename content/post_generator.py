@@ -1,8 +1,15 @@
 from PIL import Image, ImageDraw, ImageFont
-import requests, io, os
+import arabic_reshaper
+import requests, io
 import content.config as config
+from bidi.algorithm import get_display
 
 
+def prepare_text_for_rendering(text, script):
+    """Convert logical Arabic text into the visual glyph order Pillow expects."""
+    if script == "arabic":
+        return get_display(arabic_reshaper.reshape(text))
+    return text
 
 def wrap_text(text, font, max_width):
     words = text.split()
@@ -25,7 +32,13 @@ def wrap_text(text, font, max_width):
         lines.append(' '.join(current_line))
     return lines
 
-def create_post(news_item):
+def create_post(news_item, settings):
+    gradient_start = settings["gradient_color"]
+    text_color = settings["text_color"]
+
+    script = config.detect_script(news_item["title"])
+    font_path = config.FONT_PATHS[script]
+
     #extract the image
     if not news_item["thumbnail"]:
         raise ValueError("news_item has contain no thumbnail URL")
@@ -64,10 +77,10 @@ def create_post(news_item):
         relation = (y - gradient_start_y) / (config.POST_HEIGHT - gradient_start_y)
         
         # Linearly interpolate RGBA values
-        r = int(config.GRADIENT_END[0] + (config.GRADIENT_START[0] - config.GRADIENT_END[0]) * relation)
-        g = int(config.GRADIENT_END[1] + (config.GRADIENT_START[1] - config.GRADIENT_END[1]) * relation)
-        b = int(config.GRADIENT_END[2] + (config.GRADIENT_START[2] - config.GRADIENT_END[2]) * relation)
-        a = int(config.GRADIENT_END[3] + (config.GRADIENT_START[3] - config.GRADIENT_END[3]) * relation)
+        r = int(config.GRADIENT_END[0] + (gradient_start[0] - config.GRADIENT_END[0]) * relation)
+        g = int(config.GRADIENT_END[1] + (gradient_start[1] - config.GRADIENT_END[1]) * relation)
+        b = int(config.GRADIENT_END[2] + (gradient_start[2] - config.GRADIENT_END[2]) * relation)
+        a = int(config.GRADIENT_END[3] + (gradient_start[3] - config.GRADIENT_END[3]) * relation)
         
         gradient_draw.line([(0, y), (config.POST_WIDTH, y)], fill=(r, g, b, a))
 
@@ -77,20 +90,23 @@ def create_post(news_item):
     # 4. Draw the Text
     draw = ImageDraw.Draw(canvas)
     try:
-        font = ImageFont.truetype(config.FONT_PATH, config.FONT_SIZE)
+        font = ImageFont.truetype(font_path, config.FONT_SIZE)
     except IOError:
-        print(f"Font file not found at {config.FONT_PATH}. Falling back to default system font.")
+        print(f"Font file not found at {font_path}. Falling back to default system font.")
         font = ImageFont.load_default()
     
     # Wrap the title to fit within margins
     max_text_width = config.POST_WIDTH - (config.PADDING_X * 2)
+    # Wrap the logical text first, then reshape every Arabic line for Pillow.
+    # Pillow does not perform Arabic shaping or bidirectional text processing.
     wrapped_lines = wrap_text(news_item["title"], font, max_text_width)
+    rendered_lines = [prepare_text_for_rendering(line, script) for line in wrapped_lines]
 
     # Calculate text rendering start position (Working from the bottom up)
     total_text_height = 0
     line_heights = []
     
-    for line in wrapped_lines:
+    for line in rendered_lines:
         bbox = font.getbbox(line)
         h = bbox[3] - bbox[1]
         line_heights.append(h)
@@ -101,36 +117,17 @@ def create_post(news_item):
     current_y = config.POST_HEIGHT - config.PADDING_BOTTOM - total_text_height
 
     # Draw each line of text
-    for i, line in enumerate(wrapped_lines):
-        draw.text((config.PADDING_X, current_y), line, fill=config.TEXT_COLOR, font=font)
+    for i, line in enumerate(rendered_lines):
+        if script == "arabic":
+            # Arabic is right-to-left, so position each line against the right margin.
+            bbox = font.getbbox(line)
+            line_width = bbox[2] - bbox[0]
+            x = config.POST_WIDTH - config.PADDING_X - line_width
+        else:
+            x = config.PADDING_X
+        draw.text((x, current_y), line, fill=text_color, font=font)
         current_y += line_heights[i] + config.LINE_SPACING
 
     # Convert back to RGB to save as JPEG if desired, or keep as PNG
     final_post = canvas.convert("RGB")
     return final_post
-'''
-file_path = "data/articles.json"
-
-data = []
-try:
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-except:
-    print("Ther is problem with opening the file!")
-    sys.exit(1)
-    
-i = 0
-for article in data:
-    final = create_post(data[i])
-
-    output_folder = config.OUTPUT_IMAGES_DIR
-    filename = f"post{i+1}.jpg"
-    full_path  = os.path.join(output_folder, filename)
-
-    os.makedirs(output_folder, exist_ok= True)
-
-    final.save(full_path, "JPEG", quality= 95)
-    print(f"{i+1} saved!")
-    i += 1
-    
-'''
