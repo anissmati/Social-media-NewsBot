@@ -75,7 +75,7 @@ def main() -> None:
         CallbackQueryHandler(edit_tone, pattern=f"^{EDIT_TONE_MARKUP}")
     )
 
-    #EDIT TONE
+    #EDIT LANGUAGE
     app.add_handler(
         CallbackQueryHandler(edit_language_choices, pattern=f"^{CALLBACK_EDIT_MARKUP}language")
     )

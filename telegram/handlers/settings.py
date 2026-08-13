@@ -16,6 +16,9 @@ EDIT_PLATFORM_MARKUP = "platform:"
 EDIT_TONE_MARKUP = "tone:"
 EDIT_LANGUAGE_MARKUP = "language:"
 
+def filter_settings(settings):
+    return {k: settings[k] for k in list(settings)[:5]}
+
 def _build_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         InlineKeyboardButton(f"{label}", callback_data=f"{CALLBACK_EDIT_MARKUP}{value}")
@@ -30,7 +33,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_settings = get_user_settings(user_id)
 
     text = "<b>Current settings:</b>\n\n"
-    for label, value in SETTING.items():
+    for label, value in filter_settings(SETTING).items():
         if label == "Gradient Color":
             text = text + f"<b>{label}</b>: {gradient_tuple_to_hex(user_settings[value])}\n" 
         else:
@@ -161,7 +164,7 @@ async def edit_tone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(f"Tone changed succesfully to: {tone}")
     await query.message.delete()
 
-#EDIT TONE
+#EDIT LANGUAGE
 def _build_language_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         InlineKeyboardButton(f"{label}", callback_data=f"{EDIT_LANGUAGE_MARKUP}{value}")

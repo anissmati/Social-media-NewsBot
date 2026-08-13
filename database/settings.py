@@ -12,6 +12,7 @@ SETTING = {
     "Platform": "platform",
     "Tone": "tone",
     "Language": "language", 
+    "Reset Settings": "reset"
 }
 LANGUAGES = {
     "English": "En",
