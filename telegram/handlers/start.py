@@ -16,7 +16,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     text = (f"Welcome {user.first_name}\n\n"
             "The available commands:\n"
-            "Search for News: /findNews")
+            "Search for News: /FindNews\n"
+            "Modefy settings: /Settings")
     
     await update.message.reply_text(text)
     

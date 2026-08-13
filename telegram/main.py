@@ -1,3 +1,4 @@
+from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler,CallbackQueryHandler, MessageHandler, filters
 from handlers.start import start
 from handlers.findnews import *
@@ -9,8 +10,17 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+async def post_init(application: ApplicationBuilder) -> None:
+    """Set command suggestions when the bot starts up."""
+    commands = [
+        BotCommand("start", "Start the bot and get a greeting"),
+        BotCommand("findnews", "Seatch for news to create your post"),
+        BotCommand("settings", "Edit the posts settings"),
+    ]
+    await application.bot.set_my_commands(commands)
+
 def main() -> None:
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("findnews", findnews))
