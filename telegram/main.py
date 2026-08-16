@@ -3,6 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler,CallbackQueryHandler
 from handlers.start import start
 from handlers.findnews import *
 from handlers.settings import *
+from database.articles_db import init_db
 from dotenv import load_dotenv
 import os
 
@@ -20,6 +21,7 @@ async def post_init(application: ApplicationBuilder) -> None:
     await application.bot.set_my_commands(commands)
 
 def main() -> None:
+    init_db()
     app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))

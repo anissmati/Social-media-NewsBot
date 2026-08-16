@@ -1,7 +1,7 @@
 import sys
 import os
 import nltk
-import string
+import string, requests
 from nltk.stem import PorterStemmer
 from datetime import datetime, timezone
 
@@ -103,11 +103,30 @@ def age_score(articles: list):
 
         article.published_at = pub_datetime
                         
+def thumbnail_validity(url, timeout=1):
+    """Fast check using HTTP HEAD to avoid downloading the whole image."""
+    if not url:
+        return False
+    try:
+        response = requests.head(url, timeout=timeout, allow_redirects=True)
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+            if 'image' in content_type:
+                return True
+        return False
+    except requests.RequestException:
+        return False
+
+def thumbnail_check(articles):
+    for article in articles:
+        if not thumbnail_validity(article.thumbnail):
+            article.score = -1
 
 def score_articles(data: list):
     keyword_score(data)
     source_score(data)
     age_score(data)
+    thumbnail_check(data)
     return data
 
 

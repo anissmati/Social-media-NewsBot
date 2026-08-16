@@ -1,43 +1,47 @@
-import sys, os, json
-from pathlib import Path
+import os
+import sys
 from datetime import datetime
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pathlib import Path
 
-from content.content_generator import generate_title, generate_summary
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from Searcher.models import NewsItem
+from content.content_generator import generate_summary, generate_title
 from content.post_generator import create_post
+from database.articles_db import get_article
 from database.user_service import get_user_settings
 
-file_path = "data/articles.json"
 
-def run_pipeline_2(choice, user_id):
+def run_pipeline_2(slot: int, user_id: int, article: NewsItem | None = None) -> None:
+    """Generate a post from one article owned by ``user_id``."""
     settings = get_user_settings(user_id)
+    article = article or get_article(user_id, slot)
+    if article is None:
+        raise ValueError(f"No article in slot {slot} for user {user_id}")
+
+    article_data = {
+        "title": article.title,
+        "source": article.source,
+        "url": article.url,
+        "published_at": article.published_at.isoformat(),
+        "summary": article.summary,
+        "thumbnail": article.thumbnail,
+        "score": article.score,
+        "category": article.category,
+    }
+    final_title = generate_title(article_data, settings)
+    final_summary = generate_summary(article_data, settings)
+
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    
-    data = []
-    try:
-        with open(file_path, 'r', encoding= "utf-8") as file:
-            data = json.load(file)
-    except Exception as e:
-        print(f"There is problem with opening the file! {e}")
-        sys.exit(1)
-
-    final_content = [generate_title(data[choice - 1], settings), generate_summary(data[choice - 1], settings)]
-    summary_path = Path("output") / f"{now}" / "description.txt"
+    summary_path = Path("output") / now / "description.txt"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
-
     with open(summary_path, "w", encoding="utf-8") as file:
-        file.write(final_content[1])
-        print("description saved!")
+        file.write(final_summary)
 
-    image_path = summary_path.parent / "post.jpg"
-    data[choice - 1]['title']= final_content[0]
-    img = create_post(data[choice-1], settings)
-
-    img.save(image_path)
-    print("image saved!")
+    article_data["title"] = final_title
+    image = create_post(article_data, settings)
+    image.save(summary_path.parent / "post.jpg")
 
 
 if __name__ == "__main__":
-    run_pipeline_2()
-    
-
+    print("Use run_pipeline_2(slot, user_id) after fetching articles.")

@@ -6,5 +6,4 @@ from content.main import run_pipeline_2
 
 
 if __name__ == "__main__":
-    run_pipeline_1()
-    run_pipeline_2()
+    print("Run the Telegram bot with telegram/main.py.")
