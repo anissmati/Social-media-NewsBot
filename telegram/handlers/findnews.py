@@ -1,5 +1,6 @@
 import glob
 import os
+import shutil
 import sys
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -94,9 +95,12 @@ async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.message.reply_text("Error: Generated files were not found in the output folder.")
         return
 
-    with open(txt_files[0], "r", encoding="utf-8") as file:
-        caption_text = file.read()
-    with open(jpg_files[0], "rb") as photo:
-        await query.message.reply_photo(photo=photo, caption=caption_text[:1024])
-    if len(caption_text) > 1024:
-        await query.message.reply_text(f"Full description:\n\n{caption_text}")
+    try:
+        with open(txt_files[0], "r", encoding="utf-8") as file:
+            caption_text = file.read()
+        with open(jpg_files[0], "rb") as photo:
+            await query.message.reply_photo(photo=photo, caption=caption_text[:1024])
+        if len(caption_text) > 1024:
+            await query.message.reply_text(f"Full description:\n\n{caption_text}")
+    finally:
+        shutil.rmtree(latest_folder, ignore_errors=True)
