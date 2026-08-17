@@ -1,8 +1,9 @@
 from telegram import BotCommand
-from telegram.ext import ApplicationBuilder, CommandHandler,CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler,CallbackQueryHandler, MessageHandler, filters, PreCheckoutQueryHandler
 from handlers.start import start
 from handlers.findnews import *
 from handlers.settings import *
+from handlers.credits import *
 from database.articles_db import init_db
 from dotenv import load_dotenv
 import os
@@ -17,6 +18,7 @@ async def post_init(application: ApplicationBuilder) -> None:
         BotCommand("start", "Start the bot and get a greeting"),
         BotCommand("findnews", "Seatch for news to create your post"),
         BotCommand("settings", "Edit the posts settings"),
+        BotCommand("credits", "Check and purchase new credits")
     ]
     await application.bot.set_my_commands(commands)
 
@@ -89,9 +91,16 @@ def main() -> None:
     app.add_handler(
         CallbackQueryHandler(reset, pattern=f"^{CALLBACK_EDIT_MARKUP}reset")
     )
+
+    #CREDITS
+    app.add_handler(CommandHandler("credits", credit))
+    app.add_handler(CallbackQueryHandler(buy_credit, pattern="^buy_"))
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout_callback))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
     
     print("Bot is running. Press Ctrl+C to stop.")
     app.run_polling()
+    
 
 
 if __name__ == "__main__":

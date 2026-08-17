@@ -16,6 +16,7 @@ if PROJECT_ROOT not in sys.path:
 from Searcher.main import run_pipeline_1
 from content.main import run_pipeline_2
 from database.articles_db import get_article, get_articles
+from database.user_service import get_user_settings, update_settings
 
 
 CATEGORIES = {
@@ -45,8 +46,13 @@ async def findnews(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def findnews_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Fetch and present articles belonging only to the requesting Telegram user."""
+    user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
+
+    if get_user_settings(user_id)["credit"] < 20:
+        await query.message.reply_text("Sorry you don't have enough credits!")
+        return
 
     category = query.data.removeprefix(CALLBACK_FIND_PREFIX)
     await query.edit_message_text(f"Searching news for: {category} ...")
@@ -68,6 +74,14 @@ async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
+
+    user_credit = get_user_settings(user_id)["credit"]
+
+    if user_credit < 20:
+        await query.message.reply_text("Sorry you don't have enough credits!")
+        return
+
+    update_settings.credit(user_id, (user_credit - 20))
 
     slot = int(query.data.removeprefix(CALLBACK_CREATE_PREFIX))
     article = get_article(user_id, slot)

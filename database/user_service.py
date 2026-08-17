@@ -17,7 +17,8 @@ def init_database():
                     gradient TEXT,
                     platform TEXT,
                     tone TEXT,
-                    language TEXT
+                    language TEXT,
+                    credit INTEGER
                     )""")
 
     connect.commit()
@@ -32,15 +33,17 @@ def create_user(telegram_id):
                 gradient_color=json.dumps(DEFAULT_SETTINGS["gradient_color"]),
                 platform=DEFAULT_SETTINGS["platform"],
                 tone=DEFAULT_SETTINGS["tone"],
-                language=DEFAULT_SETTINGS["language"])
+                language=DEFAULT_SETTINGS["language"],
+                credit=DEFAULT_SETTINGS["credit"])
 
-    cursor.execute("INSERT INTO users VALUES(?,?,?,?,?,?)", 
+    cursor.execute("INSERT INTO users VALUES(?,?,?,?,?,?,?)", 
                    (user.telegram_id,
                     user.text_color,
                     user.gradient_color,
                     user.platform,
                     user.tone,
-                    user.language))
+                    user.language,
+                    user.credit))
 
     connect.commit()
     connect.close()
@@ -71,6 +74,7 @@ def get_user_settings(telegram_id):
                 "platform": data[0][3],
                 "tone": data[0][4],
                 "language": data[0][5],
+                "credit": data[0][6]
             }
 
     connect.commit()
@@ -120,6 +124,14 @@ class update_settings:
                         cursor.execute("UPDATE users SET language = ? WHERE user_id = ?", (new_language, telegram_id,))
                         connect.commit()
                         connect.close()
+
+    def credit(telegram_id, new_credit: int):
+                            connect = sqlite3.connect(base_path)
+                            cursor = connect.cursor()
+                    
+                            cursor.execute("UPDATE users SET credit = ? WHERE user_id = ?", (new_credit, telegram_id,))
+                            connect.commit()
+                            connect.close()
 
 def reset_settings(telegram_id):
         connect = sqlite3.connect(base_path)

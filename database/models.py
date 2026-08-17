@@ -7,4 +7,5 @@ class User:
     gradient_color: str
     platform: str
     tone: str
-    language: str 
+    language: str
+    credit: int

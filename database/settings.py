@@ -4,6 +4,7 @@ DEFAULT_SETTINGS = {
     "platform": "instagram",
     "tone": "friendly",
     "language": "en",
+    "credit": 60
 }
 
 SETTING = {
