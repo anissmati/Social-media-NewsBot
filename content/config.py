@@ -22,7 +22,7 @@ GRADIENT_END = (0, 0, 0, 0)                # Fully transparent (top)
 # --- Typography ---
 #FONT_PATH = "content/fonts/Pliant.ttf"         # Path to your TTF font
 FONT_PATHS = {
-       "latin": "content/fonts/Creator_Genius.ttf",
+       "latin": "content/fonts/BebasNeue.ttf",
        "devanagari": "content/fonts/NotoSansDevanagari.ttf",
        "arabic": "content/fonts/Cairo.ttf",
    }

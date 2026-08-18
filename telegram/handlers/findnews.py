@@ -51,7 +51,7 @@ async def findnews_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await query.answer()
 
     if get_user_settings(user_id)["credit"] < 20:
-        await query.message.reply_text("Sorry you don't have enough credits!")
+        await query.message.reply_text("Sorry you don't have enough credits!\nYou can purchase using: /credits")
         return
 
     category = query.data.removeprefix(CALLBACK_FIND_PREFIX)
@@ -78,7 +78,7 @@ async def handle_create_post(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_credit = get_user_settings(user_id)["credit"]
 
     if user_credit < 20:
-        await query.message.reply_text("Sorry you don't have enough credits!")
+        await query.message.reply_text("Sorry you don't have enough credits!\nYou can purchase using: /credits")
         return
 
     update_settings.credit(user_id, (user_credit - 20))
