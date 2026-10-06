@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
+def get_proxied_image_url(original_url):
+    # Route requests through a Cloudflare Worker or allowed image proxy
+    return f"https://wsrv.nl/?url={original_url}"
 
 class newsAPI_connector:
     def __init__(self):
@@ -22,7 +25,7 @@ class newsAPI_connector:
         }
 
         try:
-            response = requests.get(self.url, params=params)
+            response = requests.get(self.url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
 
@@ -41,7 +44,7 @@ class newsAPI_connector:
                 url= art.get("url"), 
                 published_at= art.get("publishedAt"),
                 summary= art.get("description"),
-                thumbnail= art.get("urlToImage"),
+                thumbnail= (art.get("urlToImage")),
             )
 
             cleanNews.append(item)

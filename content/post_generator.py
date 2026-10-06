@@ -32,6 +32,21 @@ def wrap_text(text, font, max_width):
         lines.append(' '.join(current_line))
     return lines
 
+
+def fallback_background() -> Image.Image:
+    """Create a neutral post background when a publisher image is unavailable."""
+    image = Image.new("RGBA", (config.POST_WIDTH, config.POST_HEIGHT), (20, 29, 48, 255))
+    draw = ImageDraw.Draw(image)
+
+    # A subtle accent keeps fallback posts intentional rather than looking like
+    # failed downloads. The title gradient is added later in create_post.
+    draw.ellipse(
+        (-config.POST_WIDTH // 3, -config.POST_HEIGHT // 4,
+         config.POST_WIDTH // 2, config.POST_HEIGHT // 2),
+        fill=(36, 72, 112, 255),
+    )
+    return image
+
 def create_post(news_item, settings):
     gradient_start = settings["gradient_color"]
     text_color = settings["text_color"]
@@ -39,17 +54,20 @@ def create_post(news_item, settings):
     script = config.detect_script(news_item["title"])
     font_path = config.FONT_PATHS[script]
 
-    #extract the image
-    if not news_item["thumbnail"]:
-        raise ValueError("news_item has contain no thumbnail URL")
+    # Publisher thumbnails are optional, and PythonAnywhere may not be allowed
+    # to reach every publisher's image CDN. Fall back to a branded background so
+    # an otherwise valid article can still become a post.
+    bg_image = None
+    if news_item.get("thumbnail"):
+        try:
+            response = requests.get(news_item["thumbnail"], timeout=10)
+            response.raise_for_status()
+            bg_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
+        except Exception as e:
+            print(f"Problem fetching article thumbnail: {e}")
 
-    try:
-        response = requests.get(news_item["thumbnail"], timeout=10)
-        response.raise_for_status()
-        bg_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
-    except Exception as e:
-        print(f"problem fetching data {e}")
-        return None
+    if bg_image is None:
+        bg_image = fallback_background()
     
     #crop and resize the background image
     bg_w, bg_h = bg_image.size

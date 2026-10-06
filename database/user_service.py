@@ -5,9 +5,12 @@ import sqlite3
 from database.settings import DEFAULT_SETTINGS
 from database.models import User
 
-base_path = "database/database.db"
+basedir = os.path.abspath(os.path.dirname(__file__))
+base_path = os.path.join(basedir, "database.db")
 
 def init_database():
+    os.makedirs(basedir, exist_ok=True)
+    
     connect = sqlite3.connect(base_path)
     cursor = connect.cursor()
 

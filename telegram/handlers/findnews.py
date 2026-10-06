@@ -1,4 +1,6 @@
+import asyncio
 import glob
+import logging
 import os
 import shutil
 import sys
@@ -18,6 +20,8 @@ from content.main import run_pipeline_2
 from database.articles_db import get_article, get_articles
 from database.user_service import get_user_settings, update_settings
 
+
+logger = logging.getLogger(__name__)
 
 CATEGORIES = {
     "Technology": "tech",
@@ -57,9 +61,25 @@ async def findnews_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     category = query.data.removeprefix(CALLBACK_FIND_PREFIX)
     await query.edit_message_text(f"Searching news for: {category} ...")
 
-    user_id = update.effective_user.id
-    run_pipeline_1(category, user_id)
+    try:
+        # News fetching and image checks use blocking HTTP libraries.  Keep them
+        # out of python-telegram-bot's event loop and put an upper bound on the
+        # time a Telegram update may wait for them.
+        await asyncio.to_thread(run_pipeline_1, category, user_id)
+    except Exception:
+        logger.exception("News search failed for user %s and category %s", user_id, category)
+        await query.message.reply_text(
+            "I couldn't fetch news right now. Please try again shortly."
+        )
+        return
+
     articles = get_articles(user_id)
+
+    if not articles:
+        await query.message.reply_text(
+            "No articles were available from the configured news sources. Please try again later."
+        )
+        return
 
     for slot, article in enumerate(articles, start=1):
         title = article.title or "No Title"

@@ -1,5 +1,5 @@
 from PIL import ImageColor
-import re
+import re, os
 
 def detect_script(text):
        if re.search(r'[\u0600-\u06FF]', text):
@@ -21,11 +21,17 @@ GRADIENT_END = (0, 0, 0, 0)                # Fully transparent (top)
 
 # --- Typography ---
 #FONT_PATH = "content/fonts/Pliant.ttf"         # Path to your TTF font
+# Get the absolute path of the current file (config.py)
+CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
+# NewsBot1 root directory (since config.py is inside /content)
+ROOT_DIR = os.path.dirname(CONFIG_DIR)
+
+# --- Typography ---
 FONT_PATHS = {
-       "latin": "content/fonts/BebasNeue.ttf",
-       "devanagari": "content/fonts/NotoSansDevanagari.ttf",
-       "arabic": "content/fonts/Cairo.ttf",
-   }
+    "latin": os.path.join(ROOT_DIR, "content", "fonts", "BebasNeue.ttf"),
+    "devanagari": os.path.join(ROOT_DIR, "content", "fonts", "NotoSansDevanagari.ttf"),
+    "arabic": os.path.join(ROOT_DIR, "content", "fonts", "Cairo.ttf"),
+}
 FONT_SIZE = 64                             # Adjust based on preference
 LINE_SPACING = 15                          # Pixel spacing between wrapped text lines
 

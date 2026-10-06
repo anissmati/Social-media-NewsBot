@@ -6,8 +6,7 @@ from database.articles_db import save_articles
 def run_pipeline_1(query: str, user_id: int):
     data = fetch_data(query)
     data = score_articles(data)
-    # thumbnail_check marks unusable images with -1. Do not offer those articles,
-    # even when there are fewer than five otherwise valid results.
+    # Articles without a source thumbnail use the generated fallback background.
     data = [article for article in data if article.score >= 0]
     data = sorted_articles(data)
     save_articles(user_id, data)

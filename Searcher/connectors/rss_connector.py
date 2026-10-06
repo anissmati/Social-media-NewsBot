@@ -1,6 +1,11 @@
 import feedparser
+import requests
 from config import RSS
 from models import NewsItem
+
+def get_proxied_image_url(original_url):
+    # Route requests through a Cloudflare Worker or allowed image proxy
+    return f"https://wsrv.nl/?url={original_url}"
 
 class RSS_Connector:
     def __init__(self, feed_url: str = RSS):
@@ -9,7 +14,9 @@ class RSS_Connector:
 
     def fetch_news(self, limit: int = 10) -> list[NewsItem]:
         try:
-            feed = feedparser.parse(self.url)
+            response = requests.get(self.url, timeout=10)
+            response.raise_for_status()
+            feed = feedparser.parse(response.content)
             
             if feed.bozo: # bozo is a flag for malformed XML
                 print("Warning: Potential issue with RSS feed format.")
@@ -34,7 +41,7 @@ class RSS_Connector:
                 # RSS often uses 'summary' or 'description'
                 summary=entry.get("summary") or entry.get("description"),
                 # Images are tricky in RSS; they are usually in 'links' or 'media_content'
-                thumbnail=self._extract_image(entry)
+                thumbnail=(self._extract_image(entry))
             )
             clean_news.append(item)
 
