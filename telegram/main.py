@@ -99,6 +99,9 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
     
     print("Bot is running. Press Ctrl+C to stop.")
+    import asyncio
+
+    asyncio.set_event_loop(asyncio.new_event_loop())
     app.run_polling()
     
 
