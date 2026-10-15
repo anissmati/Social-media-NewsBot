@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsBot Studio — Local OS Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Apple macOS / iOS Glassmorphism & Monochrome Gradients */
+        :root {
+            --bg-gradient: radial-gradient(circle at 15% 15%, #ffffff 0%, #f1f1f4 45%, #e4e4e9 100%);
+            --glass-bg: rgba(255, 255, 255, 0.68);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --card-bg: rgba(255, 255, 255, 0.82);
+            --subtle-bg: rgba(0, 0, 0, 0.04);
+        }
+        html.dark {
+            --bg-gradient: radial-gradient(circle at 15% 15%, #1c1c1f 0%, #0d0d0f 55%, #000000 100%);
+            --glass-bg: rgba(24, 24, 27, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.11);
+            --card-bg: rgba(32, 32, 36, 0.72);
+            --subtle-bg: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+        .apple-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px) saturate(190%);
+            -webkit-backdrop-filter: blur(28px) saturate(190%);
+            border: 1px solid var(--glass-border);
+        }
+        .apple-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .apple-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.25);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.3);
+            border-radius: 9999px;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="text-zinc-900 dark:text-zinc-100 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col select-none">
+
+    <header class="apple-glass sticky top-0 z-30 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+            <!-- macOS Window Dots -->
+            <div class="hidden sm:flex items-center gap-1.5 mr-2">
+                <span class="w-3 h-3 rounded-full bg-zinc-400 dark:bg-zinc-600 inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700 inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800 inline-block"></span>
+            </div>
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 flex items-center justify-center text-white dark:text-black font-bold text-sm shadow-md">
+                N
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-semibold tracking-tight text-sm sm:text-base">NewsBot Studio</h1>
+                    <span id="connectionBadge" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-black/5 dark:border-white/10">
+                        Local UI
+                    </span>
+                </div>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">Pipeline_1 (Searcher) &bull; Pipeline_2 (Content Generator)</p>
+            </div>
+        </div>
+
+        <!-- Right Controls: User ID, Credits, Theme Toggle -->
+        <div class="flex items-center gap-2.5 sm:gap-3">
+            <!-- Active User ID Pill -->
+            <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-xs">
+                <span class="text-zinc-400">User ID:</span>
+                <input id="userIdInput" type="number" value="1" onchange="syncUserState()" 
+                    class="w-14 bg-transparent font-medium focus:outline-none text-center" title="Telegram User ID in Database">
+            </div>
+
+            <!-- Credits Pill + Refill Button -->
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-200 text-white dark:text-black text-xs font-medium shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span id="creditsCount">100</span>
+                <span class="hidden sm:inline opacity-75">Credits</span>
+                <button onclick="openCreditsModal()" class="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 dark:bg-black/15 hover:bg-white/30 dark:hover:bg-black/25 text-[10px] font-bold transition" title="Add Credits">
+                    + Top Up
+                </button>
+            </div>
+
+            <!-- Light / Dark Mode Button -->
+            <button id="themeToggleBtn" onclick="toggleTheme()" 
+                class="p-2 rounded-full apple-card hover:scale-105 active:scale-95 transition flex items-center justify-center"
+                title="Switch Light / Dark Mode">
+                <!-- Sun Icon -->
+                <svg id="sunIcon" class="w-4 h-4 hidden dark:block text-zinc-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <!-- Moon Icon -->
+                <svg id="moonIcon" class="w-4 h-4 block dark:hidden text-zinc-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 sm:p-5 max-w-[1800px] w-full mx-auto lg:overflow-hidden">
+
+        <!-- LEFT SECTION: Parameters & Settings (handlers/settings.py) -->
+        <section class="lg:col-span-3 apple-glass rounded-3xl p-5 flex flex-col justify-between lg:overflow-y-auto custom-scrollbar">
+            <div class="space-y-5">
+                <div class="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+                    <div>
+                        <h2 class="text-sm font-semibold tracking-tight">Post Parameters</h2>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Synced with <code class="font-mono">handlers/settings.py</code></p>
+                    </div>
+                    <button onclick="resetSettings()" class="text-xs px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition font-medium">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Live Color & Gradient Preview Card -->
+                <div class="relative rounded-2xl overflow-hidden h-28 border border-black/10 dark:border-white/10 shadow-inner flex items-end p-3.5" id="liveStylePreview"
+                     style="background: linear-gradient(135deg, #27272a 0%, #09090b 100%);">
+                    <div class="absolute inset-0 opacity-30 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]"></div>
+                    <div id="liveGradientOverlay" class="absolute inset-0" style="background: linear-gradient(to top, #000000 15%, transparent 100%);"></div>
+                    <div class="relative z-10 w-full">
+                        <span id="previewBadge" class="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded bg-white/20 text-white backdrop-blur-md">Instagram &bull; Formal</span>
+                        <p id="previewSampleText" class="text-xs font-semibold mt-1.5 line-clamp-2" style="color: #FFFFFF;">
+                            Live headline preview with your custom text & gradient colors
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Text Color (HEX) -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-zinc-600 dark:text-zinc-300 flex justify-between">
+                        <span>Text Color</span>
+                        <span class="text-[11px] text-zinc-400 font-mono" id="textColorLabel">#FFFFFF</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input type="color" id="textColorPicker" value="#ffffff" oninput="syncColorInputs('text', this.value)"
+                            class="w-9 h-9 rounded-xl cursor-pointer bg-transparent shrink-0">
+                        <input type="text" id="textColorHex" value="#FFFFFF" maxlength="7" oninput="syncColorInputs('textHex', this.value)"
+                            placeholder="#FFFFFF"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-zinc-400">
+                    </div>
+                </div>
+
+                <!-- Gradient Color (HEX -> Tuple) -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-zinc-600 dark:text-zinc-300 flex justify-between">
+                        <span>Gradient Overlay Color</span>
+                        <span class="text-[11px] text-zinc-400 font-mono" id="gradientTupleLabel">RGB(0, 0, 0)</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input type="color" id="gradientColorPicker" value="#000000" oninput="syncColorInputs('gradient', this.value)"
+                            class="w-9 h-9 rounded-xl cursor-pointer bg-transparent shrink-0">
+                        <input type="text" id="gradientColorHex" value="#000000" maxlength="7" oninput="syncColorInputs('gradientHex', this.value)"
+                            placeholder="#000000"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-zinc-400">
+                    </div>
+                </div>
+
+                <!-- Target Platform -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Target Platform</label>
+                    <div class="grid grid-cols-2 gap-1.5" id="platformSelector">
+                        <button type="button" onclick="selectOption('platform', 'Instagram')" data-val="Instagram" class="opt-platform px-3 py-2 rounded-xl text-xs font-medium border transition">Instagram</button>
+                        <button type="button" onclick="selectOption('platform', 'Twitter / X')" data-val="Twitter / X" class="opt-platform px-3 py-2 rounded-xl text-xs font-medium border transition">Twitter / X</button>
+                        <button type="button" onclick="selectOption('platform', 'LinkedIn')" data-val="LinkedIn" class="opt-platform px-3 py-2 rounded-xl text-xs font-medium border transition">LinkedIn</button>
+                        <button type="button" onclick="selectOption('platform', 'Facebook')" data-val="Facebook" class="opt-platform px-3 py-2 rounded-xl text-xs font-medium border transition">Facebook</button>
+                        <button type="button" onclick="selectOption('platform', 'Telegram')" data-val="Telegram" class="opt-platform col-span-2 px-3 py-2 rounded-xl text-xs font-medium border transition">Telegram Channel</button>
+                    </div>
+                </div>
+
+                <!-- Tone of Voice -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Post Tone</label>
+                    <select id="toneSelect" onchange="updatePreviewCard()"
+                        class="w-full px-3 py-2.5 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800/90 border border-black/10 dark:border-white/10 focus:outline-none">
+                        <option value="Professional">Professional & Objective</option>
+                        <option value="Casual">Casual & Engaging</option>
+                        <option value="Breaking">Urgent / Breaking News</option>
+                        <option value="Analytical">Deep & Analytical</option>
+                        <option value="Witty">Witty & Bold</option>
+                    </select>
+                </div>
+
+                <!-- Language -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Output Language</label>
+                    <select id="languageSelect" onchange="updatePreviewCard()"
+                        class="w-full px-3 py-2.5 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800/90 border border-black/10 dark:border-white/10 focus:outline-none">
+                        <option value="English">English</option>
+                        <option value="Arabic">Arabic (العربية)</option>
+                        <option value="French">French (Français)</option>
+                        <option value="Spanish">Spanish (Español)</option>
+                        <option value="German">German (Deutsch)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-4 mt-4 border-t border-black/5 dark:border-white/10">
+                <button onclick="saveAllSettings()" 
+                    class="w-full py-2.5 rounded-2xl bg-gradient-to-b from-zinc-800 to-black dark:from-white dark:to-zinc-300 text-white dark:text-black font-semibold text-xs shadow-lg hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Parameters
+                </button>
+            </div>
+        </section>
+
+        <!-- CENTER SECTION: News Discovery & Found Articles (handlers/findnews.py) -->
+        <section class="lg:col-span-5 apple-glass rounded-3xl p-5 flex flex-col lg:overflow-hidden">
+            <!-- Header & Category Pills -->
+            <div class="shrink-0 space-y-3 pb-4 border-b border-black/5 dark:border-white/10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold tracking-tight">Discover News Articles</h2>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Select a category to run <code class="font-mono">Searcher.run_pipeline_1</code></p>
+                    </div>
+                    <span class="text-[11px] font-medium px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5" id="articlesCountBadge">
+                        0 Articles
+                    </span>
+                </div>
+
+                <!-- 6 Categories from findnews.py -->
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" id="categoryButtons">
+                    <button onclick="searchCategory('tech', 'Technology')" data-cat="tech"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        Technology
+                    </button>
+                    <button onclick="searchCategory('sports', 'Sports')" data-cat="sports"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        Sports
+                    </button>
+                    <button onclick="searchCategory('politics', 'Politics')" data-cat="politics"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        Politics
+                    </button>
+                    <button onclick="searchCategory('science', 'Science')" data-cat="science"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        Science
+                    </button>
+                    <button onclick="searchCategory('business', 'Business')" data-cat="business"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        Business
+                    </button>
+                    <button onclick="searchCategory('world', 'World')" data-cat="world"
+                        class="cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition truncate">
+                        World
+                    </button>
+                </div>
+            </div>
+
+            <!-- Found Articles List -->
+            <div id="articlesContainer" class="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-3 pr-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- RIGHT VERTICAL SECTION: Generated Posts & Articles Output (run_pipeline_2) -->
+        <section class="lg:col-span-4 apple-glass rounded-3xl p-5 flex flex-col lg:overflow-hidden">
+            <div class="shrink-0 flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
+                <div>
+                    <h2 class="text-sm font-semibold tracking-tight">Generated Posts Studio</h2>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Output from <code class="font-mono">content.run_pipeline_2</code> (20 Credits/post)</p>
+                </div>
+                <button onclick="clearGeneratedPosts()" class="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition">
+                    Clear Feed
+                </button>
+            </div>
+
+            <!-- Vertical Feed of Generated Posts -->
+            <div id="generatedPostsFeed" class="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-4 pr-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Credits Modal (handlers/credits.py) -->
+    <div id="creditsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md p-4">
+        <div class="apple-glass rounded-3xl max-w-md w-full p-6 border border-white/15 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold">Refill Bot Credits</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Each post generation uses 20 credits</p>
+                </div>
+                <button onclick="closeCreditsModal()" class="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-2" id="bundlesList">
+                <!-- Bundles from credits.py: 50:25, 100:45, 150:65, 200:80, 250:95 -->
+                <button onclick="buyCreditsBundle(50, 25)" class="w-full apple-card p-3 rounded-2xl flex items-center justify-between text-xs font-medium">
+                    <span>✨ 50 Credits Bundle</span>
+                    <span class="px-2.5 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black font-semibold">25 Stars (Add Free Locally)</span>
+                </button>
+                <button onclick="buyCreditsBundle(100, 45)" class="w-full apple-card p-3 rounded-2xl flex items-center justify-between text-xs font-medium">
+                    <span>✨ 100 Credits Bundle</span>
+                    <span class="px-2.5 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black font-semibold">45 Stars (Add Free Locally)</span>
+                </button>
+                <button onclick="buyCreditsBundle(150, 65)" class="w-full apple-card p-3 rounded-2xl flex items-center justify-between text-xs font-medium">
+                    <span>✨ 150 Credits Bundle</span>
+                    <span class="px-2.5 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black font-semibold">65 Stars (Add Free Locally)</span>
+                </button>
+                <button onclick="buyCreditsBundle(200, 80)" class="w-full apple-card p-3 rounded-2xl flex items-center justify-between text-xs font-medium">
+                    <span>✨ 200 Credits Bundle</span>
+                    <span class="px-2.5 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black font-semibold">80 Stars (Add Free Locally)</span>
+                </button>
+                <button onclick="buyCreditsBundle(250, 95)" class="w-full apple-card p-3 rounded-2xl flex items-center justify-between text-xs font-medium">
+                    <span>✨ 250 Credits Bundle</span>
+                    <span class="px-2.5 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black font-semibold">95 Stars (Add Free Locally)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apple OS Floating Toast Notification -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Offscreen Canvas for High-Resolution Local Image Synthesis Fallback -->
+    <canvas id="postCanvas" width="1080" height="1080" class="hidden"></canvas>
+
+    <script>
+        const HEX_REGEX = /^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+
+        // Application State mirroring database/user_service.py & database/articles_db.py
+        const state = {
+            userId: 1,
+            backendConnected: false,
+            activeCategory: 'tech',
+            settings: {
+                text_color: '#FFFFFF',
+                gradient_color: '#000000',
+                platform: 'Instagram',
+                tone: 'Professional',
+                language: 'English',
+                credit: 100
+            },
+            articles: [],
+            generatedPosts: []
+        };
+
+        // Curated realistic fallback articles per category when testing UI standalone
+        const MOCK_ARTICLES_DB = {
+            tech: [
+                { slot: 1, title: "Next-Gen Neural Processing Units Cut Local AI Inference Power by 68%", source: "TechCrunch", published: "14m ago", summary: "New silicon architecture allows full multimodal models to run silently on ultrathin laptops without thermal throttling." },
+                { slot: 2, title: "Open-Source Browser Engine Introduces Hardware-Accelerated WebGPU Pipelines", source: "The Verge", published: "42m ago", summary: "Developers can now deploy native-grade graphics and local LLM shaders directly inside standard web applications." },
+                { slot: 3, title: "Quantum-Resistant Encryption Standard Rolls Out Across Global Cloud Networks", source: "Wired", published: "1h ago", summary: "Major infrastructure providers complete migration to post-quantum lattice cryptography ahead of schedule." },
+                { slot: 4, title: "Autonomous Drone Delivery Network Expands to 18 Metropolitan Hubs", source: "Ars Technica", published: "2h ago", summary: "Sub-15-minute medical and electronics deliveries receive full regulatory clearance for beyond-visual-line-of-sight flight." }
+            ],
+            sports: [
+                { slot: 1, title: "Champions League Quarter-Final Delivers Historic Late Overtime Thriller", source: "ESPN", published: "19m ago", summary: "Two stoppage-time goals turned an elimination match into one of the most dramatic European nights of the decade." },
+                { slot: 2, title: "Formula 1 Unveils Active Aerodynamics Package Test Results Ahead of Grand Prix", source: "Autosport", published: "55m ago", summary: "Lap times dropped by 1.4 seconds in wet-weather simulations thanks to adaptive front and rear wing elements." },
+                { slot: 3, title: "Marathon World Record Pace Broken in Berlin Under Ideal Autumn Conditions", source: "Athletics Weekly", published: "2h ago", summary: "Negative split strategy and carbon-plated prototypes helped shave 22 seconds off the previous course benchmark." }
+            ],
+            politics: [
+                { slot: 1, title: "International Digital Trade Accord Signed by 42 Participating Nations", source: "Reuters", published: "25m ago", summary: "The framework standardizes cross-border data privacy rules and removes tariffs on digital services." },
+                { slot: 2, title: "Clean Energy Infrastructure Bill Clears Final Parliamentary Committee Vote", source: "Associated Press", published: "1h ago", summary: "Grid modernization and utility-scale battery storage receive multi-year funding guarantees." }
+            ],
+            science: [
+                { slot: 1, title: "James Webb Telescope Detects Complex Organic Molecules in Proto-Planetary Disk", source: "Nature Astronomy", published: "31m ago", summary: "Spectroscopic data reveals prebiotic carbon chains forming around a young sun-like star 400 light-years away." },
+                { slot: 2, title: "Solid-State Lithium-Silicon Battery Retains 94% Capacity After 3,000 Cycles", source: "Science Daily", published: "1h ago", summary: "Breakthrough ceramic electrolyte prevents dendrite growth even under ultra-fast 10-minute charging." }
+            ],
+            business: [
+                { slot: 1, title: "Global Semiconductor Supply Chain Investment Reaches Record $180B Quarter", source: "Bloomberg", published: "12m ago", summary: "Foundry expansions in three continents aim to eliminate bottlenecks for automotive and AI hardware." },
+                { slot: 2, title: "Sovereign Green Bonds Oversubscribed 4x as Institutional Demand Surges", source: "Financial Times", published: "49m ago", summary: "Yields tightened as pension funds shifted capital into long-duration renewable infrastructure assets." }
+            ],
+            world: [
+                { slot: 1, title: "High-Speed Transcontinental Rail Corridor Connects Six Capital Cities", source: "BBC World", published: "22m ago", summary: "Overnight electric sleeper trains cut regional travel emissions by 80% compared to short-haul flights." },
+                { slot: 2, title: "UNESCO Adds Seven Ancient Astronomical Observatories to World Heritage List", source: "Al Jazeera", published: "1h ago", summary: "Conservation grants will preserve millennia-old stone solar calendars across four continents." }
+            ]
+        };
+
+        // Initialize UI
+        window.addEventListener('DOMContentLoaded', async () => {
+            renderOptionButtons();
+            updatePreviewCard();
+            await checkBackendStatus();
+            await searchCategory('tech', 'Technology', true);
+            renderGeneratedPosts();
+        });
+
+        // Theme Toggle (Black & White Apple OS Light/Dark)
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            showToast(isDark ? "Switched to Apple Dark Mode" : "Switched to Apple Light Mode");
+        }
+
+        // Toast Helper (replaces alert())
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `apple-glass px-4 py-2.5 rounded-2xl shadow-xl border text-xs font-medium flex items-center gap-2.5 transition-all duration-300 pointer-events-auto ${
+                isError ? 'border-red-500/40 text-red-600 dark:text-red-400' : 'border-black/10 dark:border-white/15'
+            }`;
+            toast.innerHTML = `
+                <span class="w-2 h-2 rounded-full ${isError ? 'bg-red-500' : 'bg-zinc-900 dark:bg-white'}"></span>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // Convert Hex to RGB Tuple string (mirrors database/conversion.py)
+        function hexToRgbTuple(hex) {
+            let clean = hex.replace('#', '');
+            if (clean.length === 3) {
+                clean = clean.split('').map(c => c + c).join('');
+            }
+            const num = parseInt(clean, 16);
+            return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        }
+
+        // Sync Color Pickers & Hex Inputs
+        function syncColorInputs(source, val) {
+            if (source === 'text') {
+                state.settings.text_color = val.toUpperCase();
+                document.getElementById('textColorHex').value = state.settings.text_color;
+            } else if (source === 'textHex') {
+                if (HEX_REGEX.test(val)) {
+                    const norm = val.startsWith('#') ? val.toUpperCase() : '#' + val.toUpperCase();
+                    state.settings.text_color = norm;
+                    if (norm.length === 7) document.getElementById('textColorPicker').value = norm;
+                }
+            } else if (source === 'gradient') {
+                state.settings.gradient_color = val.toUpperCase();
+                document.getElementById('gradientColorHex').value = state.settings.gradient_color;
+            } else if (source === 'gradientHex') {
+                if (HEX_REGEX.test(val)) {
+                    const norm = val.startsWith('#') ? val.toUpperCase() : '#' + val.toUpperCase();
+                    state.settings.gradient_color = norm;
+                    if (norm.length === 7) document.getElementById('gradientColorPicker').value = norm;
+                }
+            }
+            updatePreviewCard();
+        }
+
+        function selectOption(key, value) {
+            state.settings[key] = value;
+            renderOptionButtons();
+            updatePreviewCard();
+        }
+
+        function renderOptionButtons() {
+            document.querySelectorAll('.opt-platform').forEach(btn => {
+                const active = btn.getAttribute('data-val') === state.settings.platform;
+                btn.className = `opt-platform px-3 py-2 rounded-xl text-xs font-medium border transition ${
+                    active
+                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-black border-transparent shadow-sm'
+                        : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10'
+                }`;
+            });
+        }
+
+        function updatePreviewCard() {
+            state.settings.tone = document.getElementById('toneSelect').value;
+            state.settings.language = document.getElementById('languageSelect').value;
+
+            document.getElementById('textColorLabel').textContent = state.settings.text_color;
+            const rgb = hexToRgbTuple(state.settings.gradient_color);
+            document.getElementById('gradientTupleLabel').textContent = `RGB(${rgb.join(', ')})`;
+
+            document.getElementById('liveGradientOverlay').style.background =
+                `linear-gradient(to top, ${state.settings.gradient_color} 20%, transparent 100%)`;
+            document.getElementById('previewSampleText').style.color = state.settings.text_color;
+            document.getElementById('previewBadge').textContent =
+                `${state.settings.platform} • ${state.settings.tone} • ${state.settings.language}`;
+            document.getElementById('creditsCount').textContent = state.settings.credit;
+        }
+
+        // Check if Python UI/server.py is running locally
+        async function checkBackendStatus() {
+            const badge = document.getElementById('connectionBadge');
+            try {
+                const res = await fetch(`/api/settings?user_id=${state.userId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    state.backendConnected = true;
+                    state.settings = { ...state.settings, ...data };
+                    document.getElementById('textColorHex').value = state.settings.text_color;
+                    document.getElementById('textColorPicker').value = state.settings.text_color;
+                    document.getElementById('gradientColorHex').value = state.settings.gradient_color;
+                    document.getElementById('gradientColorPicker').value = state.settings.gradient_color;
+                    document.getElementById('toneSelect').value = state.settings.tone;
+                    document.getElementById('languageSelect').value = state.settings.language;
+                    renderOptionButtons();
+                    updatePreviewCard();
+                    badge.textContent = "Python Connected";
+                    badge.className = "text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-black";
+                }
+            } catch (e) {
+                state.backendConnected = false;
+                badge.textContent = "Standalone Local Mode";
+            }
+        }
+
+        async function syncUserState() {
+            const val = parseInt(document.getElementById('userIdInput').value, 10) || 1;
+            state.userId = val;
+            await checkBackendStatus();
+            showToast(`Active User ID set to #${state.userId}`);
+        }
+
+        // Save Settings (handlers/settings.py equivalent)
+        async function saveAllSettings() {
+            if (!HEX_REGEX.test(state.settings.text_color) || !HEX_REGEX.test(state.settings.gradient_color)) {
+                showToast("Invalid HEX color format. Use #RRGGBB.", true);
+                return;
+            }
+            if (state.backendConnected) {
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: state.userId, ...state.settings })
+                    });
+                    if (res.ok) {
+                        showToast("Settings saved to database!");
+                        return;
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            showToast("Parameters saved for post generation!");
+        }
+
+        // Reset Settings (handlers/settings.py -> reset_settings)
+        async function resetSettings() {
+            state.settings = {
+                ...state.settings,
+                text_color: '#FFFFFF',
+                gradient_color: '#000000',
+                platform: 'Instagram',
+                tone: 'Professional',
+                language: 'English'
+            };
+            document.getElementById('textColorHex').value = '#FFFFFF';
+            document.getElementById('textColorPicker').value = '#FFFFFF';
+            document.getElementById('gradientColorHex').value = '#000000';
+            document.getElementById('gradientColorPicker').value = '#000000';
+            document.getElementById('toneSelect').value = 'Professional';
+            document.getElementById('languageSelect').value = 'English';
+            renderOptionButtons();
+            updatePreviewCard();
+
+            if (state.backendConnected) {
+                await fetch('/api/settings/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: state.userId })
+                }).catch(() => {});
+            }
+            showToast("User settings reset to default!");
+        }
+
+        // Search Category (handlers/findnews.py -> run_pipeline_1)
+        async function searchCategory(catCode, catLabel, silent = false) {
+            if (state.settings.credit < 20) {
+                showToast("Not enough credits! Top up at least 20 credits.", true);
+                openCreditsModal();
+                return;
+            }
+
+            state.activeCategory = catCode;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-cat') === catCode;
+                btn.className = `cat-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition truncate ${
+                    isSelected
+                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-black border-transparent shadow-sm'
+                        : 'border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10'
+                }`;
+            });
+
+            const container = document.getElementById('articlesContainer');
+            container.innerHTML = `
+                <div class="h-48 flex flex-col items-center justify-center text-center gap-3 opacity-70">
+                    <div class="w-6 h-6 border-2 border-zinc-900 dark:border-white border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-xs font-medium">Running <code class="font-mono">Searcher.run_pipeline_1('${catCode}')</code>...</p>
+                </div>
+            `;
+
+            if (state.backendConnected) {
+                try {
+                    const res = await fetch('/api/findnews', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: state.userId, category: catCode })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        state.articles = data.articles || [];
+                        renderArticles(catLabel);
+                        if (!silent) showToast(`Fetched ${state.articles.length} articles in ${catLabel}`);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("Falling back to local preview articles:", e);
+                }
+            }
+
+            setTimeout(() => {
+                state.articles = MOCK_ARTICLES_DB[catCode] || [];
+                renderArticles(catLabel);
+                if (!silent) showToast(`Found ${state.articles.length} articles in ${catLabel}`);
+            }, 350);
+        }
+
+        function renderArticles(catLabel) {
+            const container = document.getElementById('articlesContainer');
+            document.getElementById('articlesCountBadge').textContent = `${state.articles.length} Articles`;
+
+            if (!state.articles.length) {
+                container.innerHTML = `
+                    <div class="h-48 flex flex-col items-center justify-center text-center p-6 text-zinc-400 text-xs">
+                        No articles available from configured sources. Try another category.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.articles.map((art, idx) => {
+                const slot = art.slot || (idx + 1);
+                const paddedSlot = String(slot).padStart(2, '0');
+                return `
+                    <article class="apple-card rounded-2xl p-4 flex flex-col justify-between gap-3">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <span class="font-mono font-semibold text-zinc-800 dark:text-zinc-200">Article ${paddedSlot}</span>
+                                <span>${art.source || catLabel} &bull; ${art.published || 'Just now'}</span>
+                            </div>
+                            <h3 class="text-xs sm:text-sm font-semibold leading-snug">
+                                ${art.title}
+                            </h3>
+                            ${art.summary ? `<p class="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">${art.summary}</p>` : ''}
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+                            <span class="text-[11px] text-zinc-400">Cost: 20 Credits</span>
+                            <button onclick="generatePostFromArticle(${slot})" 
+                                class="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-black text-xs font-semibold hover:opacity-90 active:scale-95 transition flex items-center gap-1.5 shadow-sm">
+                                <span>Generate</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        // Generate Post (handlers/findnews.py -> handle_create_post / run_pipeline_2)
+        async function generatePostFromArticle(slot) {
+            if (state.settings.credit < 20) {
+                showToast("Sorry, you don't have enough credits! Please top up.", true);
+                openCreditsModal();
+                return;
+            }
+
+            const article = state.articles.find(a => (a.slot || 1) === slot) || state.articles[slot - 1];
+            if (!article) {
+                showToast("Article no longer available. Please search again.", true);
+                return;
+            }
+
+            // Deduct 20 credits
+            state.settings.credit -= 20;
+            updatePreviewCard();
+            showToast(`Generating post for Article #${String(slot).padStart(2, '0')} (-20 Credits)...`);
+
+            if (state.backendConnected) {
+                try {
+                    const res = await fetch('/api/create_post', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: state.userId, slot })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        state.settings.credit = data.credit ?? state.settings.credit;
+                        updatePreviewCard();
+                        state.generatedPosts.unshift({
+                            id: Date.now(),
+                            slot,
+                            title: article.title,
+                            imageUrl: data.image_data_url,
+                            caption: data.caption,
+                            platform: state.settings.platform,
+                            tone: state.settings.tone,
+                            language: state.settings.language,
+                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        });
+                        renderGeneratedPosts();
+                        showToast(`Post #${slot} generated from output/ folder!`);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("Using local canvas synthesis:", e);
+                }
+            }
+
+            // Synthesize visual post image & caption using current settings
+            const imageUrl = renderPostImageToDataURL(article);
+            const caption = buildPostCaption(article);
+
+            state.generatedPosts.unshift({
+                id: Date.now(),
+                slot,
+                title: article.title,
+                imageUrl,
+                caption,
+                platform: state.settings.platform,
+                tone: state.settings.tone,
+                language: state.settings.language,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            renderGeneratedPosts();
+            showToast(`Post generated for Article #${String(slot).padStart(2, '0')}!`);
+        }
+
+        // High-Resolution Canvas Post Generator (honors text_color & gradient_color)
+        function renderPostImageToDataURL(article) {
+            const canvas = document.getElementById('postCanvas');
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width;
+            const H = canvas.height;
+
+            // Background editorial monochrome gradient
+            const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+            bgGrad.addColorStop(0, '#27272a');
+            bgGrad.addColorStop(0.5, '#18181b');
+            bgGrad.addColorStop(1, '#09090b');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle geometric Apple-style rings
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 2;
+            for (let r = 180; r < 900; r += 160) {
+                ctx.beginPath();
+                ctx.arc(W * 0.8, H * 0.22, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // User's Custom Gradient Overlay (settings.gradient_color)
+            const [r, g, b] = hexToRgbTuple(state.settings.gradient_color);
+            const userGrad = ctx.createLinearGradient(0, H * 0.25, 0, H);
+            userGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.05)`);
+            userGrad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, 0.78)`);
+            userGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.96)`);
+            ctx.fillStyle = userGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Category & Platform Pill
+            ctx.fillStyle = 'rgba(255,255,255,0.14)';
+            ctx.beginPath();
+            ctx.roundRect(72, 72, 340, 52, 26);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '600 22px Inter, sans-serif';
+            ctx.fillText(`${state.activeCategory.toUpperCase()}  •  ${state.settings.platform.toUpperCase()}`, 100, 106);
+
+            // Wrap Article Headline in User's Text Color (settings.text_color)
+            ctx.fillStyle = state.settings.text_color;
+            ctx.font = '700 56px Inter, sans-serif';
+            const words = article.title.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                if (ctx.measureText(testLine).width < W - 144) {
+                    currentLine = testLine;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+
+            let startY = H - 220 - (lines.length - 1) * 68;
+            lines.forEach((line, i) => {
+                ctx.fillText(line, 72, startY + i * 68);
+            });
+
+            // Footer Branding
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.font = '500 24px Inter, sans-serif';
+            ctx.fillText(`NewsBot Studio  •  ${state.settings.tone} Tone  •  ${state.settings.language}`, 72, H - 78);
+
+            return canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        function buildPostCaption(article) {
+            const tags = `#${state.activeCategory} #${state.settings.platform.replace(/\W+/g, '')} #NewsBot #BreakingNews`;
+            return `📰 ${article.title}\n\n${article.summary || 'Full story analyzed and summarized by NewsBot pipeline.'}\n\n⚙️ Tone: ${state.settings.tone} | 🌐 Language: ${state.settings.language}\n\n${tags}`;
+        }
+
+        // Render Right Vertical Feed of Generated Posts
+        function renderGeneratedPosts() {
+            const feed = document.getElementById('generatedPostsFeed');
+            if (!state.generatedPosts.length) {
+                feed.innerHTML = `
+                    <div class="h-64 rounded-2xl border border-dashed border-black/15 dark:border-white/15 flex flex-col items-center justify-center text-center p-6 gap-2 text-zinc-400">
+                        <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-xs font-medium text-zinc-600 dark:text-zinc-300">No Generated Posts Yet</p>
+                        <p class="text-[11px]">Click <b>"Generate"</b> on any discovered article in the middle section to run <code class="font-mono">run_pipeline_2</code>.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            feed.innerHTML = state.generatedPosts.map(post => `
+                <div class="apple-card rounded-2xl overflow-hidden flex flex-col">
+                    <!-- Generated JPG Preview -->
+                    <div class="relative aspect-square w-full bg-zinc-900 overflow-hidden">
+                        <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover">
+                        <span class="absolute top-3 left-3 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-black/70 text-white backdrop-blur-md">
+                            Article #${String(post.slot).padStart(2, '0')} &bull; ${post.timestamp}
+                        </span>
+                    </div>
+
+                    <!-- Generated Caption & Action Buttons -->
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-center justify-between text-[11px] text-zinc-400">
+                            <span>${post.platform} &bull; ${post.tone}</span>
+                            <span>${post.language}</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-black/5 dark:bg-white/5 text-xs text-zinc-700 dark:text-zinc-300 whitespace-pre-line max-h-36 overflow-y-auto custom-scrollbar select-text font-normal leading-relaxed" id="caption-${post.id}">${post.caption}</div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <!-- Download Image Button -->
+                            <button onclick="downloadPostImage('${post.id}')"
+                                class="py-2 px-3 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-black text-xs font-semibold flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                <span>Download JPG</span>
+                            </button>
+
+                            <!-- Copy Text Button -->
+                            <button onclick="copyPostCaption('${post.id}')"
+                                class="py-2 px-3 rounded-xl bg-black/10 dark:bg-white/10 hover:bg-black/15 dark:hover:bg-white/20 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Copy Text</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function downloadPostImage(postId) {
+            const post = state.generatedPosts.find(p => String(p.id) === String(postId));
+            if (!post) return;
+            const link = document.createElement('a');
+            link.href = post.imageUrl;
+            link.download = `newsbot_post_${post.slot}_${post.id}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Image downloaded (.jpg)");
+        }
+
+        function copyPostCaption(postId) {
+            const post = state.generatedPosts.find(p => String(p.id) === String(postId));
+            if (!post) return;
+            const temp = document.createElement('textarea');
+            temp.value = post.caption;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast("Post caption copied to clipboard!");
+        }
+
+        function clearGeneratedPosts() {
+            state.generatedPosts = [];
+            renderGeneratedPosts();
+            showToast("Cleared generated posts feed");
+        }
+
+        // Credits Modal Handlers (handlers/credits.py)
+        function openCreditsModal() {
+            const modal = document.getElementById('creditsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCreditsModal() {
+            const modal = document.getElementById('creditsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function buyCreditsBundle(amount, stars) {
+            state.settings.credit += amount;
+            updatePreviewCard();
+            closeCreditsModal();
+
+            if (state.backendConnected) {
+                await fetch('/api/credits/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: state.userId, amount })
+                }).catch(() => {});
+            }
+            showToast(`Added +${amount} credits to your balance!`);
+        }
+    </script>
+</body>
+</html>
