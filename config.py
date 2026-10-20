@@ -16,10 +16,6 @@ BACKGROUND_TEMPLATES_DIR = "assets/templates/"
 OUTPUT_IMAGES_DIR = "output/images/"
 
 #searcher
-# API KEYS
-NEWSAPI_KEY = "04af84aac29049a2a850373f83df04eb"
-GNEWS_KEY = "f7e141b2d42d83a034c7bdb7cb9bc24f"
-
 # API SOURCES
 NEWSAPI = "https://newsapi.org/v2/everything"
 GNEWS = "https://gnews.io/api/v4/search"

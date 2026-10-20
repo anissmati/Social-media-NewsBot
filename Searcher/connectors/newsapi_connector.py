@@ -1,5 +1,5 @@
 import requests, os
-from config import NEWSAPI, NEWSAPI_KEY
+from config import NEWSAPI
 from models import NewsItem
 
 from dotenv import load_dotenv
