@@ -1,5 +1,6 @@
 import sys
 import os
+import math
 import pickle
 from datetime import datetime, timezone
 import numpy as np
@@ -35,6 +36,58 @@ def _get_model_artifact():
         with open(MODEL_PKL_PATH, "rb") as f:
             _model_artifact = pickle.load(f)
     return _model_artifact
+
+
+def _eval_lgbm_tree(node: dict, row_values: list) -> float:
+    """Evaluates a single LightGBM decision tree node in pure Python (no C++ DLL required)."""
+    while "split_index" in node:
+        feat_idx = node["split_feature"]
+        val = row_values[feat_idx]
+        decision_type = node.get("decision_type", "<=")
+        default_left = node.get("default_left", True)
+
+        is_na = val is None or (isinstance(val, float) and math.isnan(val))
+
+        if is_na:
+            go_left = default_left
+        elif decision_type == "==":
+            # Categorical split: threshold is a '||' separated list of integer category codes
+            cat_set = node.get("_parsed_cats")
+            if cat_set is None:
+                cat_set = {
+                    int(x) for x in str(node["threshold"]).split("||") if x != ""
+                }
+                node["_parsed_cats"] = cat_set
+            int_val = int(val)
+            if int_val < 0:
+                go_left = default_left
+            else:
+                go_left = int_val in cat_set
+        else:
+            # Numerical split (<=)
+            go_left = float(val) <= float(node["threshold"])
+
+        node = node["left_child"] if go_left else node["right_child"]
+
+    return float(node["leaf_value"])
+
+
+def _predict_from_booster_dump(booster_dump: dict, X_df: pd.DataFrame, cat_cols: list) -> np.ndarray:
+    """Runs exact LightGBM tree ensemble inference in pure Python."""
+    df_eval = X_df.copy()
+    for col in cat_cols:
+        if col in df_eval.columns and hasattr(df_eval[col], "cat"):
+            df_eval[col] = df_eval[col].cat.codes
+
+    trees = booster_dump["tree_info"]
+    records = df_eval.to_numpy().tolist()
+    preds = []
+
+    for row in records:
+        total = sum(_eval_lgbm_tree(tree["tree_structure"], row) for tree in trees)
+        preds.append(total)
+
+    return np.array(preds, dtype=float)
 
 
 def fetch_data(query: str):
@@ -200,7 +253,6 @@ def score_articles(data: list):
         return data
 
     artifact = _get_model_artifact()
-    model = artifact["model"]
     tfidf_title = artifact["tfidf_title"]
     tfidf_summary = artifact["tfidf_summary"]
     cat_cols = artifact["cat_cols"]
@@ -242,8 +294,13 @@ def score_articles(data: list):
     if "feature_columns" in artifact:
         X_final = X_final[artifact["feature_columns"]]
 
-    # 4. Predict scores using LightGBM model
-    predictions = model.predict(X_final)
+    # 4. Predict scores using pure-Python LightGBM tree evaluator (no DLL needed)
+    if "booster_dump" in artifact:
+        predictions = _predict_from_booster_dump(
+            artifact["booster_dump"], X_final, cat_cols
+        )
+    else:
+        predictions = artifact["model"].predict(X_final)
 
     for article, pred in zip(data, predictions):
         article.score = float(np.round(pred, 2))

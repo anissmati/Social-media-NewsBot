@@ -92,7 +92,7 @@ The web server binds to your own computer (`127.0.0.1`), so the interface is int
 
 ## Use the hosted Telegram bot
 
-You can also use the hosted bot in Telegram without downloading or installing this project. Open **[t.me/NWFatherBot]** and press **Start**.
+You can also use the hosted bot in Telegram without downloading or installing this project. Open [**t.me/NWFatherBot**](https://t.me/NWFatherBot) and press **Start**.
 
 ## Notes
 
